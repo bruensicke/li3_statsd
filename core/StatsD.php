@@ -2,11 +2,50 @@
 
 namespace li3_statsd\core;
 
+use lithium\core\Environment;
+use lithium\analysis\Logger;
+use lithium\util\String;
+
 /**
  * Sends statistics to the stats daemon over UDP
  *
  **/
 class StatsD {
+
+	/**
+	 * hostname of remote endpoint
+	 *
+	 * @var string
+	 */
+	public static $host = 'localhost';
+
+	/**
+	 * port of remote endpoint
+	 *
+	 * @var integer
+	 */
+	public static $port = '8125';
+
+	/**
+	 * messageformat
+	 *
+	 * @var string
+	 */
+	public static $format = '{:environment}.{:name}';
+
+	/**
+	 * Timeout in seconds before connection attempt is closed
+	 *
+	 * Two seconds as default is not much, but the point here is, tracking metrics
+	 * should not change the behavior of your application, which it would if response
+	 * time would be dramatically reduced. This way, we make sure that posting
+	 * data is omitted on connection attempts that take way to long.
+	 * Under normal conditions every post should be done within this time-limit,
+	 * if not, try to investigate why that is the case.
+	 *
+	 * @var integer
+	 */
+	public static $timeout = 2;
 
 	/**
 	 * Log timing information
@@ -59,6 +98,21 @@ class StatsD {
 		StatsD::send($data, $sampleRate);
 	}
 
+	/**
+	 * returns a replaced version of a generic message format
+	 *
+	 * used to interpolate names/folders for stats
+	 *
+	 * @param string $message optional, if given, inserts this as stats name
+	 * @return string the parsed string
+	 */
+	public static function format($message = null) {
+		return String::insert(static::$format, array(
+			'name' => ($message) ? : '{:name}',
+			'environment' => Environment::get(),
+		));
+	}
+
 	/*
 	 * Squirt the metrics over UDP
 	 **/
@@ -77,21 +131,37 @@ class StatsD {
 			$sampledData = $data;
 		}
 
-		if (empty($sampledData)) { return; }
+		if (empty($sampledData)) {
+			return;
+		}
 
 		// Wrap this in a try/catch - failures in any of this should be silently ignored
-		// @TODO We're using localhost/8125 here because that's what statsd.conf is set to
-		// we should probably try to read statsd.conf or some other config file but convention
-		// is good enough for now, esp. since we catch and fail silently.  Up to the dev to
-		// make sure statsd is running
 		try {
-			$fp = fsockopen("udp://localhost", 8125, $errno, $errstr);
-			if (! $fp) { return; }
+			$host = static::$host;
+			$port = static::$port;
+			$fp = fsockopen("udp://$host", $port, $errno, $errstr, static::$timeout);
+			if (! $fp) {
+				if (!Environment::is('development')) {
+					return;
+				}
+				$msg = sprintf('FAILED to open socket connection to [udp://%s:%s]', $host, $port);
+				Logger::error($msg);
+				return;
+			}
+			$message = static::format(); // prepare global params
 			foreach ($sampledData as $stat => $value) {
+				$stat = str_replace('{:name}', $stat, $message); // finally insert stat into message
 				fwrite($fp, "$stat:$value");
+				if (Environment::is('development')) {
+					Logger::debug(sprintf('STATSD: [%s] with value [%s]', $stat, $value));
+				}
 			}
 			fclose($fp);
 		} catch (Exception $e) {
+			if (Environment::is('development')) {
+				$msg = sprintf('li3_stats: FAILED to post data to [udp://%s:%s]', $host, $port);
+				Logger::error($msg);
+			}
 		}
 	}
 }
