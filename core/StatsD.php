@@ -10,7 +10,7 @@ use lithium\util\String;
  * Sends statistics to the stats daemon over UDP
  *
  **/
-class StatsD {
+class StatsD extends \lithium\core\StaticObject {
 
 	/**
 	 * hostname of remote endpoint
@@ -27,13 +27,6 @@ class StatsD {
 	public static $port = '8125';
 
 	/**
-	 * messageformat
-	 *
-	 * @var string
-	 */
-	public static $format = '{:environment}.{:name}';
-
-	/**
 	 * Timeout in seconds before connection attempt is closed
 	 *
 	 * Two seconds as default is not much, but the point here is, tracking metrics
@@ -46,6 +39,13 @@ class StatsD {
 	 * @var integer
 	 */
 	public static $timeout = 2;
+
+	/**
+	 * messageformat
+	 *
+	 * @var string
+	 */
+	public static $format = '{:environment}.{:name}';
 
 	/**
 	 * Log timing information
@@ -99,6 +99,35 @@ class StatsD {
 	}
 
 	/**
+	 * sets/gets message format to given $format
+	 *
+	 * @param string $format new formatmesssage to be used
+	 * @return string the parsed string
+	 */
+	public static function format($format = null) {
+		if ($format == null) {
+			return static::$format;
+		}
+		return static::$format = $format;
+	}
+
+	/**
+	 * sets/gets config
+	 *
+	 * @param array $config an array with configuration to use
+	 * @return void
+	 */
+	public static function config($config = array()) {
+		$valid = array('host', 'port', 'format', 'timeout');
+		foreach ($config as $key => $value) {
+			if (!in_array($key, $valid)) {
+				continue;
+			}
+			static::$$key = $value;
+		}
+	}
+
+	/**
 	 * returns a replaced version of a generic message format
 	 *
 	 * used to interpolate names/folders for stats
@@ -106,7 +135,7 @@ class StatsD {
 	 * @param string $message optional, if given, inserts this as stats name
 	 * @return string the parsed string
 	 */
-	public static function format($message = null) {
+	public static function message($message = null) {
 		return String::insert(static::$format, array(
 			'name' => ($message) ? : '{:name}',
 			'environment' => Environment::get(),
@@ -148,7 +177,7 @@ class StatsD {
 				Logger::error($msg);
 				return;
 			}
-			$message = static::format(); // prepare global params
+			$message = static::message(); // prepare global params
 			foreach ($sampledData as $stat => $value) {
 				$stat = str_replace('{:name}', $stat, $message); // finally insert stat into message
 				fwrite($fp, "$stat:$value");
