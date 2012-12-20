@@ -207,23 +207,28 @@ sudo cp /tmp/localConfig.js /opt/statsd/localConfig.js
 ####################################
 # http://howtonode.org/deploying-node-upstart-monit
 cat >> /tmp/statsd.conf << EOF
-#!/etc/init/statsd.conf
-description "statsd"
+#!upstart
+description "statsd server"
+author      "d1rk"
 
-start on started mountall
+start on startup
 stop on shutdown
 
-respawn
-respawn limit 99 5
-
-script  
+script
     export HOME="/root"
-    exec sudo -u nobody node /opt/statsd/stats.js /etc/statsd/localConfig.js
+
+    echo $$ > /var/run/statsd.pid
+    exec sudo -u graphite node /opt/statsd/stats.js /opt/statsd/localConfig.js >> /var/log/statsd.sys.log 2>&1
 end script
 
-post-start script
-   # Optionally put a script here that will notifiy you node has (re)started
-   # /root/bin/hoptoad.sh "node.js has started!"
+pre-start script
+    # Date format same as (new Date()).toISOString() for consistency
+    echo "[`date -u +%Y-%m-%dT%T.%3NZ`] (sys) Starting" >> /var/log/upstart/statsd.sys.log
+end script
+
+pre-stop script
+    rm /var/run/statsd.pid
+    echo "[`date -u +%Y-%m-%dT%T.%3NZ`] (sys) Stopping" >> /var/log/upstart/statsd.sys.log
 end script
 EOF
 sudo cp /tmp/statsd.conf /etc/init/statsd.conf
