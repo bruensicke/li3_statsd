@@ -166,13 +166,6 @@ sudo cp /tmp/carbon-cache.conf /etc/init/carbon-cache.conf
 sudo cp /tmp/run-carbon-cache.sh /opt/graphite/bin/run-carbon-cache.sh
 sudo chmod +x /etc/init/carbon-cache.conf /opt/graphite/bin/run-carbon-cache.sh
 
-
-
-
-
-
-
-
 ####################################
 # START CARBON
 ####################################
@@ -182,7 +175,7 @@ sudo chmod +x /etc/init/carbon-cache.conf /opt/graphite/bin/run-carbon-cache.sh
 ####################################
 # SEND DATA TO GRAPHITE
 ####################################
-sudo python examples/example-client.py
+# sudo python examples/example-client.py
 
 
 ####################################
@@ -239,5 +232,10 @@ check process statsd with pidfile "/var/run/statsd.pid"
 EOF
 sudo cp /tmp/statsd.monit.conf /etc/monit/conf.d/statsd
 
+####################################
+# Prepare librato integration
+####################################
 # for librato integration, see https://github.com/librato/statsd-librato-backend
+cd /opt/statsd
+sudo npm install statsd-librato-backend
 
