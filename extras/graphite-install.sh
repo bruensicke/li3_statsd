@@ -233,6 +233,7 @@ end script
 EOF
 sudo cp /tmp/statsd.conf /etc/init/statsd.conf
 sudo chmod +x /etc/init/statsd.conf
+sudo touch /var/run/statsd.pid
 
 ####################################
 # CREATE MONIT CONFIG
