@@ -239,5 +239,5 @@ check process statsd with pidfile "/var/run/statsd.pid"
 EOF
 sudo cp /tmp/statsd.monit.conf /etc/monit/conf.d/statsd
 
-
+# for librato integration, see https://github.com/librato/statsd-librato-backend
 
