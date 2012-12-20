@@ -181,13 +181,23 @@ sudo chmod +x /etc/init/carbon-cache.conf /opt/graphite/bin/run-carbon-cache.sh
 ####################################
 # INSTALL STATSD
 ####################################
+# for librato integration, see https://github.com/librato/statsd-librato-backend
 cd /opt && sudo git clone git://github.com/etsy/statsd.git
+cd /opt/statsd
+sudo npm install statsd-librato-backend
 # StatsD configuration
 cat >> /tmp/localConfig.js << EOF
 {
   graphitePort: 2003
 , graphiteHost: "127.0.0.1"
 , port: 8125
+, flushInterval: 60000 // flush only once per minute to save money, defaults to 10000
+, librato: {
+    email: "librato mail address",
+    token: "librato api token",
+  }
+,
+  backends: [ "./backends/graphite", "statsd-librato-backend" ],
 }
 EOF
 sudo cp /tmp/localConfig.js /opt/statsd/localConfig.js
@@ -231,11 +241,3 @@ check process statsd with pidfile "/var/run/statsd.pid"
      if 5 restarts within 5 cycles then timeout
 EOF
 sudo cp /tmp/statsd.monit.conf /etc/monit/conf.d/statsd
-
-####################################
-# Prepare librato integration
-####################################
-# for librato integration, see https://github.com/librato/statsd-librato-backend
-cd /opt/statsd
-sudo npm install statsd-librato-backend
-
