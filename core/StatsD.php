@@ -181,7 +181,7 @@ class StatsD extends \lithium\core\StaticObject {
 			foreach ($sampledData as $stat => $value) {
 				$stat = str_replace('{:name}', $stat, $message); // finally insert stat into message
 				fwrite($fp, "$stat:$value");
-				if (Environment::is('development')) {
+				if (Environment::is('development') && !error_get_last()) {
 					Logger::debug(sprintf('STATSD: [%s] with value [%s]', $stat, $value));
 				}
 			}
