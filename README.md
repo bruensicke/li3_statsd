@@ -39,5 +39,3 @@ To make it easier for you to get started, please have a look at our own [fork of
 
 * [li3](http://www.lithify.me)
 * [statsd](https://github.com/etsy/statsd)
-* [statsd fork](https://github.com/bruensicke/statsd)
-
